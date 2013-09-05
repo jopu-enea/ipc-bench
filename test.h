@@ -32,12 +32,18 @@
 #define PRODUCE_STOS_MEMSET 2
 #define PRODUCE_LOOP 3
 
+#define FLAG_LATENCY  (1 << 0)
+#define FLAG_THREADED (1 << 1)
+
+typedef struct TestType test_t;
+
 typedef struct {
   int num;
   int size;
   size_t count;
   bool per_iter_timings;
   void *data;
+  test_t *test;
   const char *output_dir;
   const char *name;
   int write_in_place;
@@ -47,11 +53,13 @@ typedef struct {
   int first_core;
   int second_core;
   int numa_node;
+  unsigned int flags;
 } test_data;
 
-typedef struct {
+struct TestType {
   const char *name;
   int is_latency_test;
+  unsigned int flags;
   void (*init_test)(test_data *);
   void (*init_parent)(test_data *);
   void (*finish_parent)(test_data *);
@@ -63,7 +71,7 @@ typedef struct {
   void (*release_read_buffer)(test_data *, struct iovec* vecs, int n_vecs);
   void (*parent_ping)(test_data *);
   void (*child_ping)(test_data *);
-} test_t;
+};
 
 static inline unsigned long
 rdtsc(void)

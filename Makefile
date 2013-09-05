@@ -16,7 +16,7 @@ CFLAGS_Linux = -DUSE_INLINE_ASM -DLinux
 CFLAGS_OpenBSD = -DUSE_INLINE_ASM
 CFLAGS += -g -Wall -O3 -D_GNU_SOURCE -DNDEBUG -std=gnu99 $(CFLAGS_$(uname))
 
-LDFLAGS_Linux := -lrt -lnuma
+LDFLAGS_Linux := -lrt -lnuma -lpthread
 LDFLAGS += -lm $(LDFLAGS_$(uname))
 
 TARGETS_POSIX := pipe_thr tcp_thr tcp_nodelay_thr unix_thr mempipe_spin_thr

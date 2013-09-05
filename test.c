@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2013 Josep Puigdemont <josep.puigdemont@enea.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 #include <err.h>
 #include <inttypes.h>
 #include <netdb.h>
+#include <pthread.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -254,7 +256,144 @@ void child_main(test_t* test, test_data* td, int is_latency_test) {
 
   if(test->finish_child)
     test->finish_child(td);
+}
 
+static int
+thread_setaffinity(pthread_t thread, int cpunum)
+{
+	int retval = 0;
+#ifdef Linux
+	cpu_set_t *mask;
+	size_t size;
+	int nrcpus = 160;
+
+	mask = CPU_ALLOC(nrcpus);
+	size = CPU_ALLOC_SIZE(nrcpus);
+	CPU_ZERO_S(size, mask);
+	CPU_SET_S(cpunum, size, mask);
+	retval = pthread_setaffinity_np(thread, size, mask);
+	if (retval != 0)
+		err(1, "pthread_setaffinity_np()");
+	CPU_FREE(mask);
+#else
+	fprintf(stderr, "setaffinity: skipping\n");
+#endif
+	return retval;
+}
+
+static void *
+receiver_thread(void *arg)
+{
+	test_data *td = (test_data *)arg;
+	test_t *test = td->test;
+
+	child_main(test, td, td->flags & FLAG_LATENCY);
+	pthread_exit(arg);
+}
+
+static void *
+sender_thread(void *arg)
+{
+	test_data *td = (test_data *)arg;
+	test_data *td2 = xmalloc(sizeof(test_data));
+	void *retval;
+	test_t *test = td->test;
+	pthread_t child;
+	int res;
+
+	test->init_test(td);
+	memcpy(td2, td, sizeof(test_data));
+
+	res = pthread_create(&child, NULL, receiver_thread, td2);
+	if (res != 0) {
+		perror("pthread_create()");
+		fprintf(stderr, "ERROR: test %d terminating\n",	td->num);
+		free(td2);
+		pthread_exit(arg);
+	}
+
+	thread_setaffinity(child, td->second_core);
+	parent_main(td->test, td, td->flags & FLAG_LATENCY);
+
+	/* wait for children to return */
+	res = pthread_join(child, &retval);
+	if (res != 0)
+		perror("pthread_join()");
+	if (retval == PTHREAD_CANCELED)
+		fprintf(stderr, "CHILD thread %d canceled\n", td->num);
+	else
+		assert(retval == td2);
+
+	free(td2);
+	pthread_exit(arg);
+}
+
+static void
+run_threads(int argc, char *argv[], test_t *test)
+{
+	bool per_iter_timings;
+	int first_cpu, second_cpu;
+	size_t count;
+	int size, parallel;
+	char *output_dir;
+	int write_in_place, read_in_place, produce_method, do_verify;
+	int numa_node;
+	int num, ret;
+	pthread_t *thread_id;
+	test_data *td;
+
+	parse_args(argc, argv, &per_iter_timings, &size, &count, &first_cpu,
+		   &second_cpu, &parallel, &output_dir, &write_in_place,
+		   &read_in_place, &produce_method, &do_verify, &numa_node);
+
+	if ((!test->is_latency_test) &&
+	    (!(produce_method >= 1 && produce_method <= 3))) {
+		fprintf(stderr, "Produce method (option -m) must be "
+			"specified and between 1 and 3\n");
+		exit(1);
+	}
+
+	if (mkdir(output_dir, 0755) < 0 && errno != EEXIST)
+		err(1, "creating directory %s", output_dir);
+
+	thread_id = (pthread_t *)malloc(sizeof(pthread_t) * parallel);
+
+	for (num = 0; num < parallel; num++) {
+		td = xmalloc(sizeof(test_data));
+		memset(td, 0, sizeof(test_data));
+		td->name = test->name;
+		td->num = num;
+		td->size = size;
+		td->count = count;
+		td->write_in_place = write_in_place;
+		td->read_in_place = read_in_place;
+		td->produce_method = produce_method;
+		td->do_verify = do_verify;
+		td->first_core = first_cpu;
+		td->second_core = second_cpu;
+		td->per_iter_timings = per_iter_timings;
+		td->numa_node = numa_node;
+		td->test = test;
+		td->flags = FLAG_THREADED;
+		td->output_dir = output_dir;
+
+		ret = pthread_create(&thread_id[num], NULL,
+				     sender_thread, td);
+		if (ret != 0)
+			err(1, "pthread_create(): %d", ret);
+		thread_setaffinity(thread_id[num], first_cpu);
+	}
+
+	/* join threads */
+	for (num = 0; num < parallel; num++) {
+		ret = pthread_join(thread_id[num], (void **)&td);
+		if (ret != 0)
+			fprintf(stderr, "pthread_join() error: %d, %m\n", ret);
+		else if (td == PTHREAD_CANCELED)
+			fprintf(stderr, "Thread %d canceled\n", num);
+		else
+			free(td);
+	}
 }
 
 /* Execute a test with as many parallel iterations as requested */
@@ -275,6 +414,9 @@ run_test(int argc, char *argv[], test_t *test)
 
   if (mkdir(tp.output_dir, 0755) < 0 && errno != EEXIST)
     err(1, "creating directory %s", tp.output_dir);
+
+  if (parallel == 19764)
+	  run_threads(argc, argv, test);
 
   while (tp.num > 0) {
     pid_t pid1 = fork ();
