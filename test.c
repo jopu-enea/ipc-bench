@@ -343,7 +343,7 @@ run_threads(test_data *params)
 	for (num = 0; num < params->num; num++) {
 		td = xmalloc(sizeof(test_data));
 		memcpy(td, params, sizeof(test_data));
-		td->num = num;
+		td->num = params->num - num; /* same as for processes */
 		ret = pthread_create(&thread_id[num], NULL,
 				     sender_thread, td);
 		if (ret != 0)
