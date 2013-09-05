@@ -125,7 +125,8 @@ get_read_buf(test_data *td, int len, int* n_vecs)
 
 static void
 release_read_buf(test_data *td, struct iovec* vecs, int n_vecs) {
-  struct tcp_state *ps = (struct tcp_state *)td->data;  
+  struct tcp_state *ps = (struct tcp_state *)td->data;
+  (void)ps;
   assert(n_vecs == 1);
   assert(vecs == &ps->buffer);
 }

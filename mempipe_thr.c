@@ -122,6 +122,7 @@ monitor(const volatile void *what)
 	       );
 }
 #else
+#ifndef USE_FUTEX
 static void
 mwait(void)
 {
@@ -130,6 +131,7 @@ static void
 monitor(const volatile void *what)
 {
 }
+#endif
 #endif
 
 /* Deferred write state */

@@ -79,7 +79,8 @@ get_read_buf(test_data *td, int len, int* n_vecs)
 
 static void
 release_read_buf(test_data *td, struct iovec* vecs, int n_vecs) {
-  pipe_state *ps = (pipe_state *)td->data;  
+  pipe_state *ps = (pipe_state *)td->data;
+  (void)ps;
   assert(n_vecs == 1);
   assert(vecs == &ps->buffer);
 }
