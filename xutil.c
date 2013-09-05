@@ -201,7 +201,7 @@ parse_args(int argc, char *argv[], test_data *td)
   td->first_core = 0;
   td->second_core = 0;
   td->numa_node = -1;
-  while((opt = getopt(argc, argv, "h?tp:a:b:s:c:o:wrvm:n:")) != -1) {
+  while((opt = getopt(argc, argv, "h?Ttp:a:b:s:c:o:wrvm:n:")) != -1) {
     switch(opt) {
      case 't':
       td->per_iter_timings = true;
@@ -238,6 +238,9 @@ parse_args(int argc, char *argv[], test_data *td)
       break;
     case 'n':
       td->numa_node = atoi(optarg);
+      break;
+    case 'T':
+      td->flags |= FLAG_THREADED;
       break;
      case '?':
      case 'h':
