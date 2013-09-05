@@ -260,58 +260,38 @@ void child_main(test_t* test, test_data* td, int is_latency_test) {
 /* Execute a test with as many parallel iterations as requested */
 void
 run_test(int argc, char *argv[], test_t *test)
-{ 
-  bool per_iter_timings;
-  int first_cpu, second_cpu;
-  size_t count;
-  int size, parallel;
-  char *output_dir;
-  int write_in_place, read_in_place, produce_method, do_verify;
-  int numa_node;
+{
+  test_data tp;
 
-  parse_args(argc, argv, &per_iter_timings, &size, &count, &first_cpu, &second_cpu, &parallel, &output_dir,
-	     &write_in_place, &read_in_place, &produce_method, &do_verify, &numa_node);
+  memset(&tp, 0, sizeof(test_data));
+  tp.name = test->name;
+  parse_args(argc, argv, &tp);
 
-  if((!test->is_latency_test) && (!(produce_method >= 1 && produce_method <= 3))) {
+  if ((!test->is_latency_test) &&
+      (!(tp.produce_method >= 1 && tp.produce_method <= 3))) {
     fprintf(stderr, "Produce method (option -m) must be specified and between 1 and 3\n");
     exit(1);
   }
 
-  if (mkdir(output_dir, 0755) < 0 && errno != EEXIST)
-    err(1, "creating directory %s", output_dir);
+  if (mkdir(tp.output_dir, 0755) < 0 && errno != EEXIST)
+    err(1, "creating directory %s", tp.output_dir);
 
-  while (parallel > 0) {
+  while (tp.num > 0) {
     pid_t pid1 = fork ();
     if (!pid1) { /* child1 */
       /* Initialise a test run */
       test_data *td = xmalloc(sizeof(test_data));
-      memset(td, 0, sizeof(test_data));
-      td->num = parallel;
-      td->size = size;
-      td->count = count;
-      td->write_in_place = write_in_place;
-      td->read_in_place = read_in_place;
-      td->produce_method = produce_method;
-      td->do_verify = do_verify;
-      td->first_core = first_cpu;
-      td->second_core = second_cpu;
-      td->per_iter_timings = per_iter_timings;
-      //      td->mode = mode;
-      td->numa_node = numa_node;
 
+      memcpy(td, &tp, sizeof(test_data));
       /* Test-specific init */
-      test->init_test(td); 
+      test->init_test(td);
       pid_t pid2 = fork ();
       if (!pid2) { /* child2 */
-        setaffinity(first_cpu);
+        setaffinity(td->first_core);
 	child_main(test, td, test->is_latency_test);
         exit (0);
       } else { /* parent2 */
-	td->output_dir = output_dir; /* Do this here because the child
-					isn't supposed to log
-					anything. */
-	td->name = test->name;
-        setaffinity(second_cpu);
+        setaffinity(td->second_core);
 	parent_main(test, td, test->is_latency_test);
 
 	wait_for_children_to_finish();
@@ -320,7 +300,7 @@ run_test(int argc, char *argv[], test_t *test)
       }
     } else { /* parent */ 
       /* continue to fork */
-      parallel--;
+      tp.num--;
     }
   }
   wait_for_children_to_finish();

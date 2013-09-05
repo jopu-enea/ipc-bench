@@ -23,6 +23,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef TEST_H
+#define TEST_H
+
 #include <stdio.h>
 
 #define PRODUCE_GLIBC_MEMSET 1
@@ -81,3 +84,6 @@ void logmsg(test_data *td,
 	    const char *fmt,
 	    ...)
   __attribute__((format (printf, 3, 4)));
+
+#endif
+

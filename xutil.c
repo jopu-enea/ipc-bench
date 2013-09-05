@@ -186,60 +186,58 @@ help(char *argv[])
 }
 
 void
-parse_args(int argc, char *argv[], bool *per_iter_timings, int *size, size_t *count, int *first_cpu, int *second_cpu,
-	   int *parallel, char **output_dir, int *write_in_place, int *read_in_place, int *produce_method, int *do_verify,
-	   int *numa_node)
+parse_args(int argc, char *argv[], test_data *td)
 {
   int opt;
-  *per_iter_timings = false;
-  *first_cpu = 0;
-  *second_cpu = 0;
-  *parallel = 1;
-  *size = 1024;
-  *count = 100;
-  *output_dir = "results";
-  *numa_node = -1;
-  *produce_method = 0;
-  *read_in_place = 0;
-  *write_in_place = 0;
-  *do_verify = 0;
+
+  td->num = 1;
+  td->size = 1024;
+  td->count = 100;
+  td->per_iter_timings = false;
+  td->output_dir = "results";
+  td->write_in_place = 0;
+  td->read_in_place = 0;
+  td->do_verify = 0;
+  td->first_core = 0;
+  td->second_core = 0;
+  td->numa_node = -1;
   while((opt = getopt(argc, argv, "h?tp:a:b:s:c:o:wrvm:n:")) != -1) {
     switch(opt) {
      case 't':
-      *per_iter_timings = true;
+      td->per_iter_timings = true;
       break;
      case 'p':
-      *parallel = atoi(optarg);
+      td->num = atoi(optarg);
       break;
      case 'a':
-      *first_cpu = atoi(optarg);
+      td->first_core = atoi(optarg);
       break;
      case 'b':
-      *second_cpu = atoi(optarg);
+      td->second_core = atoi(optarg);
       break;
      case 's':
-      *size = atoi(optarg);
+      td->size = atoi(optarg);
       break;
      case 'c':
-      *count = atoi(optarg);
+      td->count = atoi(optarg);
       break;
      case 'o':
-      *output_dir = optarg;
+      td->output_dir = optarg;
       break;
      case 'm':
-      *produce_method = atoi(optarg);
+      td->produce_method = atoi(optarg);
       break;
      case 'r':
-      *read_in_place = 1;
+      td->read_in_place = 1;
       break;
      case 'w':
-      *write_in_place = 1;
+      td->write_in_place = 1;
       break;
     case 'v':
-      *do_verify = 1;
+      td->do_verify = 1;
       break;
     case 'n':
-      *numa_node = atoi(optarg);
+      td->numa_node = atoi(optarg);
       break;
      case '?':
      case 'h':
@@ -251,9 +249,11 @@ parse_args(int argc, char *argv[], bool *per_iter_timings, int *size, size_t *co
   }
 
   fprintf(stderr, "size %d count %" PRIu64 " first_cpu %d second_cpu %d parallel %d tsc %d produce-method %d %s %s numa_node %d output_dir %s\n",
-	  *size, *count, *first_cpu, *second_cpu, *parallel, *per_iter_timings, *produce_method, *read_in_place ? "read-in-place" : "copy-read", *write_in_place ? "write-in-place" : "copy-write",
-	  *numa_node,
-	  *output_dir);
+	  td->size, td->count, td->first_core, td->second_core, td->num,
+          td->per_iter_timings, td->produce_method,
+          td->read_in_place ? "read-in-place" : "copy-read",
+          td->write_in_place ? "write-in-place" : "copy-write",
+	  td->numa_node, td->output_dir);
 }
 
 void

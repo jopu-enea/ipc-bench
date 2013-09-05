@@ -22,18 +22,19 @@
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 */
+#ifndef XUTIL_H
+#define XUTIL_H
 
 #include <stdbool.h>
 #include <stdio.h>
+#include "test.h"
 
 void * xmalloc(size_t);
 void xread(int, void *, size_t);
 void xwrite(int, const void *, size_t);
 
 void setaffinity(int);
-void parse_args(int argc, char *argv[], bool *per_iter_timings, int *size, size_t *count,
-		int *first_cpu, int *second_cpu, int *parallel, char **output_dir, int *wip, int *rip, int *prod, int *do_verify,
-		int *numa_node);
+void parse_args(int argc, char *argv[], test_data *td);
 void *establish_shm_segment(int nr_pages, int numa_node);
 
 /* Doesn't really belong here, but doesn't really belong anywhere. */
@@ -41,4 +42,6 @@ void summarise_samples(FILE *f, double *data, int nr_samples);
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
+#endif
+
 #endif
