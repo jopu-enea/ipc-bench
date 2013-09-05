@@ -199,7 +199,8 @@ main(int argc, char *argv[])
     .get_write_buffer = get_write_buf,
     .release_write_buffer = release_write_buf,
     .get_read_buffer = get_read_buf,
-    .release_read_buffer = release_read_buf
+    .release_read_buffer = release_read_buf,
+    .flags = 0,
   };
   run_test(argc, argv, &t);
   return 0;

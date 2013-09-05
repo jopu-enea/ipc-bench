@@ -650,7 +650,8 @@ main(int argc, char *argv[])
 	    .get_write_buffer = get_write_buffer,
 	    .release_write_buffer = release_write_buffer,
 	    .get_read_buffer = get_read_buffer,
-	    .release_read_buffer = release_read_buffer
+	    .release_read_buffer = release_read_buffer,
+	    .flags = 0,
 	  };
 	char *_ring_order = getenv("SHMEM_RING_ORDER");
 	if (_ring_order) {

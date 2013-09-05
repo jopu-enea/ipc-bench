@@ -432,7 +432,12 @@ main(int argc, char *argv[])
     .get_write_buffer = get_write_buffer,
     .release_write_buffer = release_write_buffer,
     .get_read_buffer = get_read_buffer,
-    .release_read_buffer = release_read_buffer
+    .release_read_buffer = release_read_buffer,
+#ifdef NO_FUTEX
+    .flags = FLAG_THREADED,
+#else
+    .flags = 0,
+#endif
   };
   char *ring_order = getenv("MEMPIPE_RING_ORDER");
   check_monitor_line_size();

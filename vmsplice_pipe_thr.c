@@ -265,7 +265,8 @@ main(int argc, char *argv[])
     .get_write_buffer = get_write_buffer,
     .release_write_buffer = release_write_buffer,
     .get_read_buffer = get_read_buffer,
-    .release_read_buffer = release_read_buffer
+    .release_read_buffer = release_read_buffer,
+    .flags = FLAG_THREADED,
   };
   run_test(argc, argv, &t);
   return 0;
